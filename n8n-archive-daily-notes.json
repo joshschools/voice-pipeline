@@ -1,0 +1,49 @@
+{
+  "name": "Archive Daily Notes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "8a4e865a-c854-4d00-8a72-e3a6fa2e5f89",
+      "name": "Daily at 06:05",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "command": "pct exec 105 -- bash -c 'for vault in /mnt/nas/Obsidian/Personal /mnt/nas/Obsidian/Work; do find \"$vault/Daily\" -maxdepth 1 -name \"*.md\" -mtime +7 2>/dev/null | while IFS= read -r f; do ym=$(basename \"$f\" | cut -c1-7); mkdir -p \"$vault/Archive/Daily/$ym\"; mv \"$f\" \"$vault/Archive/Daily/$ym/\"; done; done'"
+      },
+      "id": "a37d170f-5d95-4744-8861-4390e1ee267e",
+      "name": "Archive Old Daily Notes",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [224, 0]
+    }
+  ],
+  "connections": {
+    "Daily at 06:05": {
+      "main": [
+        [
+          {
+            "node": "Archive Old Daily Notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "description": "Archives daily notes older than 7 days from Personal and Work Obsidian vaults into Archive/Daily/YYYY-MM/ folders, running daily at 06:05 via SSH to Proxmox."
+}

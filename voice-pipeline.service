@@ -1,0 +1,17 @@
+[Unit]
+Description=Voice Note Pipeline
+After=network.target
+
+[Service]
+Type=simple
+User=jschools
+WorkingDirectory=/home/jschools/voice-pipeline
+EnvironmentFile=/home/jschools/voice-pipeline/.env
+ExecStart=/home/jschools/voice-pipeline/.venv/bin/python /home/jschools/voice-pipeline/pipeline.py
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

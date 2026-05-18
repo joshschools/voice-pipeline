@@ -1,0 +1,50 @@
+{
+  "name": "Morning Notes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst now = new Date();\nconst year = now.getFullYear();\nconst month = String(now.getMonth() + 1).padStart(2, '0');\nconst day = String(now.getDate()).padStart(2, '0');\nconst date = `${year}-${month}-${day}`;\nconst dow = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];\nconst isWeekday = !['Saturday','Sunday'].includes(dow);\n\nconst PERSONAL_DIR = '/mnt/nas/Obsidian/Personal/Daily';\nconst WORK_DIR = '/mnt/nas/Obsidian/Work/Daily';\n\nconst results = [];\n\n// Personal daily note — every day\nconst personalPath = path.join(PERSONAL_DIR, `${date}.md`);\nif (!fs.existsSync(personalPath)) {\n  fs.mkdirSync(PERSONAL_DIR, { recursive: true });\n  const content = `---\ntitle: Daily — ${date}\ndate: ${date}\ntype: daily\ntags:\n  - daily\n  - reflection\n---\n\n# Daily — ${date}\n\n## Most Important Thing\n\n\n## Urgent\n\n\n## Maintenance\n\n\n## Gratitude\n\n\n## Worth Noting\n`;\n  fs.writeFileSync(personalPath, content);\n  results.push({ vault: 'Personal', file: `${date}.md`, status: 'created' });\n} else {\n  results.push({ vault: 'Personal', file: `${date}.md`, status: 'exists' });\n}\n\n// Work daily note — weekdays only\nif (isWeekday) {\n  const workPath = path.join(WORK_DIR, `${date}.md`);\n  if (!fs.existsSync(workPath)) {\n    fs.mkdirSync(WORK_DIR, { recursive: true });\n    const content = `---\ntitle: Work — ${date}\ndate: ${date}\ntype: daily\ntags:\n  - daily\n  - work\n---\n\n# Work — ${date}\n\n## Most Important Thing\n\n\n## Urgent\n\n\n## Maintenance\n\n\n## Worth Noting\n`;\n    fs.writeFileSync(workPath, content);\n    results.push({ vault: 'Work', file: `${date}.md`, status: 'created' });\n  } else {\n    results.push({ vault: 'Work', file: `${date}.md`, status: 'exists' });\n  }\n}\n\nreturn results.map(r => ({ json: r }));"
+      },
+      "id": "write-notes",
+      "name": "Write Daily Notes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Write Daily Notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

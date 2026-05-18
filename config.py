@@ -4,8 +4,8 @@ from pathlib import Path
 INBOX_DIR   = Path("/home/jschools/voice-inbox")    # rclone drops audio here
 ARCHIVE_DIR = Path("/mnt/nas/voice-archive")  # processed audio goes here (NAS)
 
-PERSONAL_VAULT = Path("/home/jschools/Documents/Personal")
-WORK_VAULT     = Path("/home/jschools/Documents/Work")
+PERSONAL_VAULT = Path("/mnt/nas/Obsidian/Personal")
+WORK_VAULT     = Path("/mnt/nas/Obsidian/Work")
 
 # --- Whisper ---
 WHISPER_MODEL        = "large-v3"

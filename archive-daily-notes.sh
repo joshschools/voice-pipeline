@@ -6,8 +6,8 @@ set -euo pipefail
 
 KEEP_DAYS=7
 VAULTS=(
-    "/home/jschools/Documents/Personal"
-    "/home/jschools/Documents/Work"
+    "/mnt/nas/Obsidian/Personal"
+    "/mnt/nas/Obsidian/Work"
 )
 
 for VAULT in "${VAULTS[@]}"; do

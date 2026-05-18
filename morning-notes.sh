@@ -4,8 +4,8 @@ set -euo pipefail
 DATE=$(date +%Y-%m-%d)
 DOW=$(date +%A)
 
-PERSONAL_DIR="/home/jschools/Documents/Personal/Daily"
-WORK_DIR="/home/jschools/Documents/Work/Daily"
+PERSONAL_DIR="/mnt/nas/Obsidian/Personal/Daily"
+WORK_DIR="/mnt/nas/Obsidian/Work/Daily"
 
 mkdir -p "$PERSONAL_DIR" "$WORK_DIR"
 

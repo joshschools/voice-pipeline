@@ -28,13 +28,14 @@ def load_whisper() -> WhisperModel:
         config.WHISPER_MODEL,
         device=config.WHISPER_DEVICE,
         compute_type=config.WHISPER_COMPUTE_TYPE,
+        local_files_only=True,  # model already cached; avoids HuggingFace Hub on startup
     )
     log.info("Whisper ready.")
     return model
 
 
 def transcribe(model: WhisperModel, audio_path: Path) -> str:
-    segments, info = model.transcribe(str(audio_path), beam_size=5)
+    segments, info = model.transcribe(str(audio_path), beam_size=5, language="en")
     text = " ".join(s.text.strip() for s in segments)
     log.info(f"Transcribed {info.duration:.0f}s of audio → {len(text)} chars")
     return text
@@ -59,7 +60,11 @@ def format_note(client: anthropic.Anthropic, transcript: str, recorded_at: datet
     )
 
     raw = response.content[0].text.strip()
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        log.error(f"Claude returned invalid JSON:\n{raw}")
+        raise
 
 
 def write_note(note: dict) -> Path:
@@ -104,10 +109,13 @@ def process(audio_path: Path, whisper: WhisperModel, claude: anthropic.Anthropic
 
     note_path = write_note(note)
 
-    config.ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-    dest = config.ARCHIVE_DIR / audio_path.name
-    shutil.move(str(audio_path), dest)
-    log.info(f"Audio archived → {dest}")
+    try:
+        config.ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+        dest = config.ARCHIVE_DIR / audio_path.name
+        shutil.move(str(audio_path), dest)
+        log.info(f"Audio archived → {dest}")
+    except Exception:
+        log.warning(f"Could not archive audio (NAS offline?): {audio_path.name} — leaving in inbox")
     log.info(f"─── Done: {note_path.name} ───")
 
 
@@ -116,20 +124,25 @@ class AudioHandler(FileSystemEventHandler):
         self.whisper = whisper
         self.claude = claude
 
-    def on_created(self, event):
-        if event.is_directory:
-            return
-        path = Path(event.src_path)
+    def _handle(self, path: Path):
         if path.suffix.lower() not in config.AUDIO_EXTENSIONS:
             return
-        # Wait for Syncthing to finish writing the file
-        time.sleep(5)
+        time.sleep(2)
         if not path.exists():
             return
         try:
             process(path, self.whisper, self.claude)
         except Exception:
             log.exception(f"Failed to process {path.name}")
+
+    def on_created(self, event):
+        if not event.is_directory:
+            self._handle(Path(event.src_path))
+
+    def on_moved(self, event):
+        # rclone downloads to a temp file then renames — dest_path is the final file
+        if not event.is_directory:
+            self._handle(Path(event.dest_path))
 
 
 def main():

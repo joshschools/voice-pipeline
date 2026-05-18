@@ -109,10 +109,14 @@ def process(audio_path: Path, whisper: WhisperModel, claude: anthropic.Anthropic
 
     note_path = write_note(note)
 
+    done_marker = audio_path.with_name(audio_path.name + ".done")
+    done_marker.touch()
+
     try:
         config.ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
         dest = config.ARCHIVE_DIR / audio_path.name
         shutil.move(str(audio_path), dest)
+        done_marker.unlink(missing_ok=True)
         log.info(f"Audio archived → {dest}")
     except Exception:
         log.warning(f"Could not archive audio (NAS offline?): {audio_path.name} — leaving in inbox")
@@ -126,6 +130,8 @@ class AudioHandler(FileSystemEventHandler):
 
     def _handle(self, path: Path):
         if path.suffix.lower() not in config.AUDIO_EXTENSIONS:
+            return
+        if path.with_name(path.name + ".done").exists():
             return
         time.sleep(2)
         if not path.exists():
@@ -154,6 +160,8 @@ def main():
     # Process anything already in the inbox (e.g. dropped while service was down)
     for f in config.INBOX_DIR.iterdir():
         if f.suffix.lower() in config.AUDIO_EXTENSIONS:
+            if f.with_name(f.name + ".done").exists():
+                continue
             try:
                 process(f, whisper, claude)
             except Exception:

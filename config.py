@@ -14,7 +14,7 @@ WHISPER_COMPUTE_TYPE = "float16"
 
 # --- Claude ---
 CLAUDE_MODEL  = "claude-sonnet-4-6"
-CLAUDE_TOKENS = 4096
+CLAUDE_TOKENS = 8192
 
 # --- Audio ---
 AUDIO_EXTENSIONS = {".m4a", ".mp3", ".wav", ".ogg", ".opus", ".flac", ".aac"}

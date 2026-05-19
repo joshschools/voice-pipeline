@@ -57,6 +57,8 @@ def format_note(client: anthropic.Anthropic, transcript: str, recorded_at: datet
     )
 
     raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
     try:
         result = json.loads(raw)
         return result if isinstance(result, list) else [result]

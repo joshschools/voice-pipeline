@@ -41,27 +41,25 @@ def transcribe(model: WhisperModel, audio_path: Path) -> str:
     return text
 
 
-def format_note(client: anthropic.Anthropic, transcript: str, recorded_at: datetime) -> dict:
+def format_note(client: anthropic.Anthropic, transcript: str, recorded_at: datetime) -> list[dict]:
     date_str = recorded_at.strftime("%Y-%m-%d")
 
-    # Check if today's daily note already exists in either vault
-    existing = None
-    for vault in (config.PERSONAL_VAULT, config.WORK_VAULT):
-        candidate = vault / "Daily" / f"{date_str}.md"
-        if candidate.exists():
-            existing = candidate.read_text()
-            break
+    personal_daily_path = config.PERSONAL_VAULT / "Daily" / f"{date_str}.md"
+    work_daily_path = config.WORK_VAULT / "Daily" / f"{date_str}.md"
+    personal_daily = personal_daily_path.read_text() if personal_daily_path.exists() else None
+    work_daily = work_daily_path.read_text() if work_daily_path.exists() else None
 
     response = client.messages.create(
         model=config.CLAUDE_MODEL,
         max_tokens=config.CLAUDE_TOKENS,
         system=prompts.SYSTEM,
-        messages=[{"role": "user", "content": prompts.user_prompt(transcript, date_str, existing)}],
+        messages=[{"role": "user", "content": prompts.user_prompt(transcript, date_str, personal_daily, work_daily)}],
     )
 
     raw = response.content[0].text.strip()
     try:
-        return json.loads(raw)
+        result = json.loads(raw)
+        return result if isinstance(result, list) else [result]
     except json.JSONDecodeError:
         log.error(f"Claude returned invalid JSON:\n{raw}")
         raise
@@ -104,10 +102,13 @@ def process(audio_path: Path, whisper: WhisperModel, claude: anthropic.Anthropic
     recorded_at = datetime.fromtimestamp(audio_path.stat().st_mtime)
 
     transcript = transcribe(whisper, audio_path)
-    note = format_note(claude, transcript, recorded_at)
-    log.info(f"Routed → {note['vault']}/{note['folder']}/{note['filename']} (type={note['type']})")
+    notes = format_note(claude, transcript, recorded_at)
+    for note in notes:
+        log.info(f"Routed → {note['vault']}/{note['folder']}/{note['filename']} (type={note['type']})")
 
-    note_path = write_note(note)
+    note_path = write_note(notes[0])
+    for note in notes[1:]:
+        write_note(note)
 
     done_marker = audio_path.with_name(audio_path.name + ".done")
     done_marker.touch()

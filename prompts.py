@@ -39,6 +39,14 @@ DAILY note template (type = "daily"):
   ## Worth Noting
   [insights, observations, anything else worth capturing]
 
+  ## Notes Created Today
+  ```dataview
+  LIST
+  FROM ""
+  WHERE date = this.date AND type != "daily" AND type != "daily_append"
+  SORT file.ctime ASC
+  ```
+
 TOPIC note template (type = "topic"):
   ## Summary
   [2-4 sentence summary]
@@ -50,7 +58,7 @@ TOPIC note template (type = "topic"):
   - [ ] [action]
 
   ## Related
-  - [[link]]
+  - [[link to related note if one exists, otherwise omit]]
 
 Classification:
 - type = "daily" when the recording is reflection, journaling, planning, or end-of-day review
@@ -66,6 +74,11 @@ Classification:
 - tags = 2-5 lowercase tags relevant to the content
 - title = clean human-readable title
 
+Backlinks:
+- When existing note titles are provided, use [[Note Title]] wikilink syntax in Related sections whenever the content is genuinely related.
+- Only link notes that are truly relevant — do not add links just because they exist.
+- Use the exact title provided in the existing notes list.
+
 Splitting mixed content:
 - If a recording contains BOTH work and personal content, return TWO note objects — one per vault.
 - Split cleanly: work content goes in the work note, personal content in the personal note. Do not duplicate content across both.
@@ -74,10 +87,15 @@ Splitting mixed content:
 If the recording adds to the same day's daily note, set type = "daily_append".
 The content field should contain only the ## Worth Noting section (and any new action items) to be appended."""
 
+
 def user_prompt(transcript: str, date_str: str,
                 personal_daily: str | None = None,
-                work_daily: str | None = None) -> str:
+                work_daily: str | None = None,
+                existing_notes: list[str] | None = None) -> str:
     parts = [f"Recording date: {date_str}", "", f"Transcript:\n{transcript}"]
+    if existing_notes:
+        parts += ["", "Existing notes available for backlinks (use [[Title]] syntax in Related sections when genuinely relevant):"]
+        parts += [f"  - {title}" for title in existing_notes]
     if personal_daily:
         parts += ["", f"Existing PERSONAL daily note for {date_str}:\n{personal_daily}",
                   "", "If this transcript adds personal content to the day's reflection, use type 'daily_append' for the personal note."]

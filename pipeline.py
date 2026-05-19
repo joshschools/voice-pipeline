@@ -41,6 +41,35 @@ def transcribe(model: WhisperModel, audio_path: Path) -> str:
     return text
 
 
+def get_existing_notes() -> list[str]:
+    """Return titles of all non-daily, non-archive notes for backlink context."""
+    skip = {"Daily", "Archive", "Readwise"}
+    titles = []
+    for vault in (config.PERSONAL_VAULT, config.WORK_VAULT):
+        for path in vault.rglob("*.md"):
+            if not any(part in skip for part in path.parts):
+                titles.append(path.stem)
+    return sorted(titles)
+
+
+def add_cross_links(notes: list[dict]) -> list[dict]:
+    """Inject sibling note links into each note's Related section."""
+    if len(notes) <= 1:
+        return notes
+    for i, note in enumerate(notes):
+        siblings = "\n".join(
+            f"- [[{n['filename'][:-3]}|{n['title']}]]"
+            for j, n in enumerate(notes) if j != i
+        )
+        content = note["content"].replace("- [[link to related note if one exists, otherwise omit]]", "").strip()
+        if "## Related" in content:
+            content += f"\n{siblings}"
+        else:
+            content += f"\n\n## Related\n{siblings}"
+        note["content"] = content
+    return notes
+
+
 def format_note(client: anthropic.Anthropic, transcript: str, recorded_at: datetime) -> list[dict]:
     date_str = recorded_at.strftime("%Y-%m-%d")
 
@@ -48,12 +77,15 @@ def format_note(client: anthropic.Anthropic, transcript: str, recorded_at: datet
     work_daily_path = config.WORK_VAULT / "Daily" / f"{date_str}.md"
     personal_daily = personal_daily_path.read_text() if personal_daily_path.exists() else None
     work_daily = work_daily_path.read_text() if work_daily_path.exists() else None
+    existing_notes = get_existing_notes()
 
     response = client.messages.create(
         model=config.CLAUDE_MODEL,
         max_tokens=config.CLAUDE_TOKENS,
         system=prompts.SYSTEM,
-        messages=[{"role": "user", "content": prompts.user_prompt(transcript, date_str, personal_daily, work_daily)}],
+        messages=[{"role": "user", "content": prompts.user_prompt(
+            transcript, date_str, personal_daily, work_daily, existing_notes
+        )}],
     )
 
     raw = response.content[0].text.strip()
@@ -61,7 +93,8 @@ def format_note(client: anthropic.Anthropic, transcript: str, recorded_at: datet
         raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
     try:
         result = json.loads(raw)
-        return result if isinstance(result, list) else [result]
+        notes = result if isinstance(result, list) else [result]
+        return add_cross_links(notes)
     except json.JSONDecodeError:
         log.error(f"Claude returned invalid JSON:\n{raw}")
         raise

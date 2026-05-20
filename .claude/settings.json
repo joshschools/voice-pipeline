@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sudo journalctl -u voice-pipeline*)",
+      "Bash(sudo journalctl -fu voice-pipeline*)",
+      "Bash(sudo systemctl list-timers*)",
+      "Bash(systemctl list-timers*)",
+      "mcp__n8n-mcp__search_executions",
+      "mcp__n8n-mcp__get_execution",
+      "mcp__n8n-mcp__get_workflow_details"
+    ]
+  }
+}

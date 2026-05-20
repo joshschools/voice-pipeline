@@ -100,6 +100,20 @@ check("A links to both B and C", "[[b|B]]" in linked3[0]["content"] and "[[c|C]]
 check("B links to A and C",      "[[a|A]]" in linked3[1]["content"] and "[[c|C]]" in linked3[1]["content"])
 check("C links to A and B",      "[[a|A]]" in linked3[2]["content"] and "[[b|B]]" in linked3[2]["content"])
 
+# Regression: a split across vaults yields two daily notes both named YYYY-MM-DD.md.
+# Obsidian resolves [[wikilinks]] by stem, so cross-linking them would self-reference.
+same_name = [
+    {"vault": "personal", "filename": f"{DATE}.md", "title": DATE, "content": "## Worth Noting\nPersonal.",
+     "type": "daily_append", "folder": "Daily", "tags": []},
+    {"vault": "work",     "filename": f"{DATE}.md", "title": DATE, "content": "## Worth Noting\nWork.",
+     "type": "daily_append", "folder": "Daily", "tags": []},
+]
+linked_same = add_cross_links(same_name)
+check("same-filename siblings produce no self-link",
+      f"[[{DATE}|{DATE}]]" not in linked_same[0]["content"]
+      and f"[[{DATE}|{DATE}]]" not in linked_same[1]["content"],
+      linked_same[0]["content"])
+
 
 # ── API tests ─────────────────────────────────────────────────────────────────
 

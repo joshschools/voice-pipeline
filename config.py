@@ -8,7 +8,7 @@ PERSONAL_VAULT = Path("/mnt/nas/Obsidian/Personal")
 WORK_VAULT     = Path("/mnt/nas/Obsidian/Work")
 
 # --- Whisper ---
-WHISPER_MODEL        = "large-v3"
+WHISPER_MODEL        = "large-v3-turbo"
 WHISPER_DEVICE       = "cuda"
 WHISPER_COMPUTE_TYPE = "float16"
 
